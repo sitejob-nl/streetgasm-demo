@@ -1,12 +1,15 @@
 import { useQuery } from '@tanstack/react-query';
 import { getStats } from '@/lib/api';
+import type { DashboardStats } from '@/types';
 
-export const useStats = () => {
-  return useQuery({
-    queryKey: ['stats'],
-    queryFn: getStats,
-    staleTime: 1000 * 60 * 5, // 5 minutes
-  });
-};
-
-export default useStats;
+/**
+ * Hook for fetching dashboard statistics
+ */
+export function useStats() {
+    return useQuery<DashboardStats>({
+        queryKey: ['dashboard-stats'],
+        queryFn: getStats,
+        staleTime: 60000, // 1 minute
+        retry: 2,
+    });
+}

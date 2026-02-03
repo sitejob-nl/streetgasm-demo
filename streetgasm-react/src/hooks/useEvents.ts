@@ -1,12 +1,19 @@
 import { useQuery } from '@tanstack/react-query';
 import { getProducts } from '@/lib/api';
+import type { Event } from '@/types';
 
-export const useEvents = (page = 1, perPage = 10) => {
-  return useQuery({
-    queryKey: ['events', page, perPage],
-    queryFn: () => getProducts({ page, per_page: perPage }),
-    staleTime: 1000 * 60 * 5, // 5 minutes
-  });
-};
-
-export default useEvents;
+/**
+ * Hook for fetching events (products from WooCommerce)
+ */
+export function useEvents(params?: {
+    page?: number;
+    per_page?: number;
+    search?: string;
+}) {
+    return useQuery<{ data: Event[]; total: number; totalPages: number; page: number }>({
+        queryKey: ['events', params],
+        queryFn: () => getProducts(params),
+        staleTime: 300 * 1000, // 5 minutes
+        retry: 2,
+    });
+}
