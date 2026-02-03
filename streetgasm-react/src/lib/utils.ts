@@ -1,130 +1,114 @@
-import { format, formatDistanceToNow, parseISO, isValid } from 'date-fns';
+// Utility functions for StreetGasm Dashboard
 
-// Date formatting
-export const formatDate = (date: string | Date | null | undefined): string => {
-  if (!date) return '-';
-  
-  const parsed = typeof date === 'string' ? parseISO(date) : date;
-  if (!isValid(parsed)) return '-';
-  
-  return format(parsed, 'MMM d, yyyy');
-};
+/**
+ * Format a date string to localized format
+ */
+export function formatDate(dateString: string | Date, options?: Intl.DateTimeFormatOptions): string {
+    if (!dateString) return '-';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('nl-NL', options ?? {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+    });
+}
 
-export const formatDateTime = (date: string | Date | null | undefined): string => {
-  if (!date) return '-';
-  
-  const parsed = typeof date === 'string' ? parseISO(date) : date;
-  if (!isValid(parsed)) return '-';
-  
-  return format(parsed, 'MMM d, yyyy h:mm a');
-};
+/**
+ * Format a date to relative time ago format
+ */
+export function formatTimeAgo(dateString: string | Date): string {
+    if (!dateString) return '-';
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
 
-export const formatRelativeTime = (date: string | Date | null | undefined): string => {
-  if (!date) return '-';
-  
-  const parsed = typeof date === 'string' ? parseISO(date) : date;
-  if (!isValid(parsed)) return '-';
-  
-  return formatDistanceToNow(parsed, { addSuffix: true });
-};
+    if (diffInSeconds < 60) return 'Just now';
+    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
+    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
+    if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d ago`;
 
-// Currency formatting
-export const formatCurrency = (amount: number | string | null | undefined, currency = 'EUR'): string => {
-  if (amount === null || amount === undefined) return '€0.00';
-  
-  const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
-  if (isNaN(numAmount)) return '€0.00';
-  
-  return new Intl.NumberFormat('nl-NL', {
-    style: 'currency',
-    currency,
-  }).format(numAmount);
-};
+    return formatDate(date);
+}
 
-// Status helpers
-export const getStatusColor = (status: string): string => {
-  const statusColors: Record<string, string> = {
-    active: 'var(--green)',
-    completed: 'var(--green)',
-    processing: 'var(--blue)',
-    pending: 'var(--gold-start)',
-    'on-hold': 'var(--gold-start)',
-    cancelled: '#ef4444',
-    failed: '#ef4444',
-    refunded: '#9ca3af',
-  };
-  
-  return statusColors[status.toLowerCase()] || 'var(--text-muted)';
-};
+/**
+ * Format currency in EUR
+ */
+export function formatCurrency(amount: number | string): string {
+    const num = typeof amount === 'string' ? parseFloat(amount) : amount;
+    if (isNaN(num)) return '€0.00';
+    return new Intl.NumberFormat('nl-NL', {
+        style: 'currency',
+        currency: 'EUR',
+    }).format(num);
+}
 
-export const getStatusLabel = (status: string): string => {
-  const labels: Record<string, string> = {
-    active: 'Active',
-    completed: 'Completed',
-    processing: 'Processing',
-    pending: 'Pending',
-    'on-hold': 'On Hold',
-    cancelled: 'Cancelled',
-    failed: 'Failed',
-    refunded: 'Refunded',
-  };
-  
-  return labels[status.toLowerCase()] || status;
-};
+/**
+ * Get initials from first and last name
+ */
+export function getInitials(firstName?: string, lastName?: string): string {
+    return (
+        (firstName?.[0] || '') + (lastName?.[0] || '')
+    ).toUpperCase();
+}
 
-// Text helpers
-export const truncate = (text: string, length: number): string => {
-  if (!text) return '';
-  if (text.length <= length) return text;
-  return text.slice(0, length) + '...';
-};
+/**
+ * Get status badge color class
+ */
+export function getStatusColor(status: string): string {
+    const colors: Record<string, string> = {
+        active: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+        'on-hold': 'bg-amber-500/20 text-amber-400 border-amber-500/30',
+        pending: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+        cancelled: 'bg-red-500/20 text-red-400 border-red-500/30',
+        completed: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+        processing: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+        approved: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+        rejected: 'bg-red-500/20 text-red-400 border-red-500/30',
+        waitlist: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
+    };
+    return colors[status] || 'bg-gray-500/20 text-gray-400 border-gray-500/30';
+}
 
-export const capitalize = (text: string): string => {
-  if (!text) return '';
-  return text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
-};
+/**
+ * Debounce function
+ */
+export function debounce<T extends (...args: Parameters<T>) => void>(
+    func: T,
+    wait: number
+): (...args: Parameters<T>) => void {
+    let timeout: ReturnType<typeof setTimeout>;
+    return function executedFunction(...args: Parameters<T>) {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func(...args), wait);
+    };
+}
 
-export const getInitials = (firstName?: string, lastName?: string): string => {
-  const first = firstName?.charAt(0)?.toUpperCase() || '';
-  const last = lastName?.charAt(0)?.toUpperCase() || '';
-  return first + last || '?';
-};
+/**
+ * Truncate text with ellipsis
+ */
+export function truncate(text: string, maxLength: number): string {
+    if (!text || text.length <= maxLength) return text;
+    return text.slice(0, maxLength) + '...';
+}
 
-// Number helpers
-export const formatNumber = (num: number | string | null | undefined): string => {
-  if (num === null || num === undefined) return '0';
-  
-  const parsed = typeof num === 'string' ? parseInt(num, 10) : num;
-  if (isNaN(parsed)) return '0';
-  
-  return new Intl.NumberFormat('nl-NL').format(parsed);
-};
+/**
+ * Capitalize first letter
+ */
+export function capitalize(text: string): string {
+    if (!text) return '';
+    return text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
+}
 
-export const formatCompactNumber = (num: number): string => {
-  if (num >= 1000000) {
-    return (num / 1000000).toFixed(1) + 'M';
-  }
-  if (num >= 1000) {
-    return (num / 1000).toFixed(1) + 'K';
-  }
-  return num.toString();
-};
+/**
+ * Generate a random ID
+ */
+export function generateId(): string {
+    return crypto.randomUUID();
+}
 
-// Validation helpers
-export const isValidEmail = (email: string): boolean => {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email);
-};
-
-// Debounce
-export const debounce = <T extends (...args: Parameters<T>) => ReturnType<T>>(
-  func: T,
-  wait: number
-): ((...args: Parameters<T>) => void) => {
-  let timeout: ReturnType<typeof setTimeout>;
-  
-  return (...args: Parameters<T>) => {
-    clearTimeout(timeout);
-    timeout = setTimeout(() => func(...args), wait);
-  };
-};
+/**
+ * Classnames utility (simple version of clsx/classnames)
+ */
+export function cn(...classes: (string | undefined | null | false)[]): string {
+    return classes.filter(Boolean).join(' ');
+}
