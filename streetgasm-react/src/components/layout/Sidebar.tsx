@@ -1,58 +1,56 @@
+import { Link, useLocation } from 'react-router-dom';
+import { Home, Users, CreditCard, Calendar, ClipboardCheck, Network, Car, ShieldCheck, Megaphone, BarChart3, Receipt, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useState } from 'react';
-import { NavLink } from 'react-router-dom';
-import {
-  LayoutDashboard,
-  Users,
-  CreditCard,
-  Calendar,
-  ShoppingBag,
-  Settings,
-  ChevronLeft,
-  ChevronRight,
-  UserCheck,
-  Ticket,
-  Globe,
-  BarChart3,
-  Mail,
-  Car
-} from 'lucide-react';
-
-const links = [
-  { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/members', icon: Users, label: 'Members' },
-  { to: '/subscriptions', icon: CreditCard, label: 'Subscriptions' },
-  { to: '/orders', icon: ShoppingBag, label: 'Orders' },
-  { to: '/events', icon: Calendar, label: 'Events' },
-  { to: '/registrations', icon: Ticket, label: 'Registrations' },
-  { to: '/network', icon: Globe, label: 'Network' },
-  { to: '/analytics', icon: BarChart3, label: 'Analytics' },
-  { to: '/approvals', icon: UserCheck, label: 'Approvals' },
-  { to: '/marketing', icon: Mail, label: 'Marketing' },
-  { to: '/garage', icon: Car, label: 'Garage' },
-  { to: '/settings', icon: Settings, label: 'Settings' },
-];
 
 const Sidebar = () => {
-  const [collapsed, setCollapsed] = useState(false);
+    const location = useLocation();
+    const [collapsed, setCollapsed] = useState(false);
 
-  return (
-    <aside className={`sidebar ${collapsed ? 'collapsed' : ''}`}>
-      <div className="sidebar-header">
-        {!collapsed && <span className="logo">STREETGASM</span>}
-        <button className="collapse-btn" onClick={() => setCollapsed(!collapsed)}>
-          {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
-        </button>
-      </div>
-      <nav className="sidebar-nav">
-        {links.map(({ to, icon: Icon, label }) => (
-          <NavLink key={to} to={to} className="nav-link" end={to === '/'}>
-            <Icon size={20} />
-            {!collapsed && <span>{label}</span>}
-          </NavLink>
-        ))}
-      </nav>
-    </aside>
-  );
+    const isActive = (path: string) => location.pathname === path;
+
+    const navItems = [
+        { icon: Home, label: 'Dashboard', path: '/' },
+        { icon: Users, label: 'Family Members', path: '/members' },
+        { icon: CreditCard, label: 'Subscriptions', path: '/subscriptions' },
+        { icon: Calendar, label: 'Events', path: '/events' },
+        { icon: ClipboardCheck, label: 'Registrations', path: '/registrations' },
+        { icon: Network, label: 'Network', path: '/network' },
+        { icon: Car, label: 'Garage', path: '/garage' },
+        { icon: ShieldCheck, label: 'Approvals', path: '/approvals' },
+        { icon: Megaphone, label: 'Marketing', path: '/marketing' },
+        { icon: BarChart3, label: 'Analytics', path: '/analytics' },
+        { icon: Receipt, label: 'Finance', path: '/orders' },
+    ];
+
+    return (
+        <aside className={`sidebar ${collapsed ? 'collapsed' : ''}`}>
+            <div className="logo" onClick={() => setCollapsed(!collapsed)}>
+                <span>S</span>
+            </div>
+
+            <nav className="nav">
+                {navItems.map((item) => (
+                    <Link
+                        key={item.path}
+                        to={item.path}
+                        className={`nav-item ${isActive(item.path) ? 'active' : ''}`}
+                    >
+                        <item.icon />
+                        <span className="nav-tooltip">{item.label}</span>
+                    </Link>
+                ))}
+            </nav>
+
+            <div className="sidebar-bottom">
+                <button className="sidebar-btn" onClick={() => setCollapsed(!collapsed)}>
+                    {collapsed ? <ChevronRight /> : <ChevronLeft />}
+                </button>
+                <div className="avatar">
+                    <img src="https://i.pravatar.cc/150?u=maurice" alt="Maurice" />
+                </div>
+            </div>
+        </aside>
+    );
 };
 
 export default Sidebar;

@@ -1,19 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { getStats, getSubscriptions, getOrders } from '@/lib/api';
 import { TrendingUp, Users, ShoppingBag, CreditCard, Calendar, Activity } from 'lucide-react';
-import React from 'react';
-
-interface Member {
-    id: number;
-    status: string;
-    start_date: string;
-}
-
-interface Order {
-    id: number;
-    total: string;
-    date_created: string;
-}
 
 const Analytics = () => {
     const { isLoading: statsLoading } = useQuery({
@@ -32,21 +19,21 @@ const Analytics = () => {
     });
 
     const isLoading = statsLoading || membersLoading || ordersLoading;
-    const members: Member[] = membersData?.data || [];
-    const orders: Order[] = ordersData?.data || [];
+    const members = membersData?.data || [];
+    const orders = ordersData?.data || [];
 
     // Calculate analytics
-    const activeMembers = members.filter((m: Member) => m.status === 'active').length;
-    const totalRevenue = orders.reduce((sum: number, o: Order) => sum + parseFloat(o.total || '0'), 0);
+    const activeMembers = members.filter(m => m.status === 'active').length;
+    const totalRevenue = orders.reduce((sum, o) => sum + parseFloat(o.total || '0'), 0);
     const avgOrderValue = orders.length > 0 ? totalRevenue / orders.length : 0;
 
     // Monthly data (simplified)
     const monthlyRevenue = orders
-        .filter((o: Order) => new Date(o.date_created) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000))
-        .reduce((sum: number, o: Order) => sum + parseFloat(o.total || '0'), 0);
+        .filter(o => new Date(o.date_created) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000))
+        .reduce((sum, o) => sum + parseFloat(o.total || '0'), 0);
 
     const newMembersThisMonth = members
-        .filter((m: Member) => new Date(m.start_date) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000))
+        .filter(m => new Date(m.start_date) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000))
         .length;
 
     return (
@@ -110,7 +97,7 @@ const Analytics = () => {
                                     padding: '0 20px'
                                 }}>
                                     {/* Simple bar chart visualization */}
-                                    {[65, 40, 80, 55, 90, 70, 85, 60, 95, 75, 88, 100].map((height: number, i: number) => (
+                                    {[65, 40, 80, 55, 90, 70, 85, 60, 95, 75, 88, 100].map((height, i) => (
                                         <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
                                             <div
                                                 style={{
@@ -137,25 +124,25 @@ const Analytics = () => {
                                 <div style={{ display: 'grid', gap: '16px' }}>
                                     <StatusBar
                                         label="Active"
-                                        value={members.filter((m: Member) => m.status === 'active').length}
+                                        value={members.filter(m => m.status === 'active').length}
                                         total={members.length}
                                         color="var(--green)"
                                     />
                                     <StatusBar
                                         label="On Hold"
-                                        value={members.filter((m: Member) => m.status === 'on-hold').length}
+                                        value={members.filter(m => m.status === 'on-hold').length}
                                         total={members.length}
                                         color="var(--gold-start)"
                                     />
                                     <StatusBar
                                         label="Cancelled"
-                                        value={members.filter((m: Member) => m.status === 'cancelled').length}
+                                        value={members.filter(m => m.status === 'cancelled').length}
                                         total={members.length}
                                         color="#ef4444"
                                     />
                                     <StatusBar
                                         label="Pending"
-                                        value={members.filter((m: Member) => m.status === 'pending').length}
+                                        value={members.filter(m => m.status === 'pending').length}
                                         total={members.length}
                                         color="var(--blue)"
                                     />
