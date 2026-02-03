@@ -14,11 +14,12 @@ const Events = () => {
             <header className="header">
                 <div className="header-left animate-fade">
                     <p>Overview</p>
-                    <h1>Upcoming <span className="gold-text">Experiences</span></h1>
+                    <h1>Upcoming <span className="gold-text">Events</span></h1>
                 </div>
                 <div className="header-right">
                     <button className="btn btn-gold">
-                        <Plus size={16} style={{ marginRight: 8 }} /> Add Event
+                        <Plus size={16} style={{ marginRight: 8 }} />
+                        New Event
                     </button>
                 </div>
             </header>
@@ -26,36 +27,45 @@ const Events = () => {
             <div className="content">
                 {isLoading ? (
                     <div className="loader"><div className="loader-spinner"></div></div>
-                ) : events.length === 0 ? (
-                    <div className="glass" style={{ padding: '48px', textAlign: 'center', borderRadius: '24px' }}>
-                        <p style={{ color: 'rgba(255,255,255,0.5)' }}>No events found</p>
-                    </div>
                 ) : (
                     <>
-                        <div className="events-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+                        <div className="members-grid">
                             {events.map((event, i) => (
                                 <div
                                     key={event.id}
-                                    className={`event-card animate-fade delay-${Math.min(i, 4)}`}
+                                    className={`member-card glass animate-fade delay-${Math.min(i, 4)}`}
                                 >
-                                    <img
-                                        src={event.images?.[0]?.src || 'https://streetgasm.com/wp-content/themes/streetgasm/assets/images/placeholder.jpg'}
-                                        alt={event.name}
-                                    />
-                                    <div className="event-status glass">
-                                        {event.stock_status === 'instock' ? 'Available' : 'Sold Out'}
-                                    </div>
-                                    <div className="event-content">
-                                        <div className="event-date">
-                                            <Calendar size={14} />
-                                            {event.categories?.[0]?.name || 'Event'}
+                                    <div className="member-info">
+                                        <div className="member-avatar" style={{ fontSize: '24px' }}>
+                                            <Calendar size={24} />
                                         </div>
-                                        <h3 className="event-title">{event.name}</h3>
-                                        <div className="event-loc">
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                {event.price ? `€${event.price}` : 'Price TBA'}
+                                        <div>
+                                            <div className="member-name">{event.name}</div>
+                                            <div className="member-email" dangerouslySetInnerHTML={{
+                                                __html: event.short_description || event.description || ''
+                                            }} />
+                                        </div>
+                                    </div>
+                                    <div className="member-meta">
+                                        <div className="meta-item">
+                                            <div className="meta-label">Date</div>
+                                            <div className="meta-value">
+                                                {event.date_created ? new Date(event.date_created).toLocaleDateString() : '-'}
                                             </div>
                                         </div>
+                                        <div className="meta-item">
+                                            <div className="meta-label">Status</div>
+                                            <div className="meta-value" style={{
+                                                color: event.stock_status === 'instock' ? 'var(--green)' : 'var(--red)'
+                                            }}>
+                                                {event.stock_status === 'instock' ? 'Open' : 'Closed'}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="member-actions">
+                                        <button className="btn btn-glass" style={{ width: '100%' }}>
+                                            View Details
+                                        </button>
                                     </div>
                                 </div>
                             ))}
@@ -63,21 +73,21 @@ const Events = () => {
 
                         {/* Pagination */}
                         {totalPages > 1 && (
-                            <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', marginTop: '32px' }}>
+                            <div className="pagination">
                                 <button
                                     className="btn btn-glass"
-                                    disabled={page === 1}
                                     onClick={() => setPage(p => Math.max(1, p - 1))}
+                                    disabled={page === 1}
                                 >
                                     Previous
                                 </button>
-                                <span style={{ display: 'flex', alignItems: 'center', color: 'var(--text-secondary)' }}>
+                                <span className="page-info">
                                     Page {page} of {totalPages}
                                 </span>
                                 <button
                                     className="btn btn-glass"
-                                    disabled={page >= totalPages}
-                                    onClick={() => setPage(p => p + 1)}
+                                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                                    disabled={page === totalPages}
                                 >
                                     Next
                                 </button>
