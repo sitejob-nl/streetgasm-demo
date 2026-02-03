@@ -3,6 +3,20 @@ import { useQuery } from '@tanstack/react-query';
 import { getSubscriptions } from '@/lib/api';
 import { Users, MapPin, Search, Globe, Car } from 'lucide-react';
 
+interface Member {
+    id: number;
+    status: string;
+    billing?: {
+        first_name?: string;
+        last_name?: string;
+        city?: string;
+        country?: string;
+    };
+    auto?: {
+        merk?: string;
+    };
+}
+
 const Network = () => {
     const [search, setSearch] = useState('');
     const { data, isLoading } = useQuery({
@@ -10,10 +24,10 @@ const Network = () => {
         queryFn: () => getSubscriptions({ page: 1, per_page: 100, status: 'active' }),
     });
 
-    const members = data?.data || [];
+    const members: Member[] = data?.data || [];
 
     // Group members by country/city
-    const locationGroups = members.reduce((acc: Record<string, typeof members>, member) => {
+    const locationGroups = members.reduce((acc: Record<string, Member[]>, member: Member) => {
         const country = member.billing?.country || 'Unknown';
         if (!acc[country]) acc[country] = [];
         acc[country].push(member);
@@ -21,7 +35,7 @@ const Network = () => {
     }, {});
 
     const filteredMembers = search
-        ? members.filter(m =>
+        ? members.filter((m: Member) =>
             `${m.billing?.first_name} ${m.billing?.last_name}`.toLowerCase().includes(search.toLowerCase()) ||
             m.billing?.city?.toLowerCase().includes(search.toLowerCase())
         )
@@ -30,7 +44,7 @@ const Network = () => {
     // Stats
     const totalMembers = members.length;
     const countries = Object.keys(locationGroups).length;
-    const cities = [...new Set(members.map(m => m.billing?.city).filter(Boolean))].length;
+    const cities = [...new Set(members.map((m: Member) => m.billing?.city).filter(Boolean))].length;
 
     return (
         <>
@@ -46,7 +60,7 @@ const Network = () => {
                             type="text"
                             placeholder="Search members or cities..."
                             value={search}
-                            onChange={(e) => setSearch(e.target.value)}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)}
                         />
                     </div>
                 </div>
@@ -72,7 +86,7 @@ const Network = () => {
                     </div>
                     <div className="stat-card glass">
                         <div className="stat-icon"><Car size={20} /></div>
-                        <div className="stat-value">{members.filter(m => m.auto?.merk).length}</div>
+                        <div className="stat-value">{members.filter((m: Member) => m.auto?.merk).length}</div>
                         <div className="stat-label">Verified Vehicles</div>
                     </div>
                 </div>
@@ -86,7 +100,7 @@ const Network = () => {
                             <h3 style={{ marginBottom: '24px' }}>By Country</h3>
                             <div style={{ display: 'grid', gap: '8px' }}>
                                 {Object.entries(locationGroups)
-                                    .sort(([, a], [, b]) => b.length - a.length)
+                                    .sort(([, a], [, b]) => (b as Member[]).length - (a as Member[]).length)
                                     .map(([country, countryMembers]) => (
                                         <div
                                             key={country}
@@ -109,7 +123,7 @@ const Network = () => {
                                                 fontSize: '12px',
                                                 fontWeight: 700
                                             }}>
-                                                {countryMembers.length}
+                                                {(countryMembers as Member[]).length}
                                             </span>
                                         </div>
                                     ))}
@@ -128,7 +142,7 @@ const Network = () => {
                                 maxHeight: '500px',
                                 overflowY: 'auto'
                             }}>
-                                {filteredMembers.slice(0, 50).map(member => (
+                                {filteredMembers.slice(0, 50).map((member: Member) => (
                                     <div
                                         key={member.id}
                                         style={{
