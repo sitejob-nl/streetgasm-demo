@@ -1,64 +1,83 @@
 import { useQuery } from '@tanstack/react-query';
-import { getStats, getSubscriptions, getOrders } from '@/lib/api';
+import { getStats, getSubscriptions, getSubscription, subscriptionToMember } from '@/lib/api';
+import type { DashboardStats, Subscription, Member } from '@/types';
 
-// Combined hook for dashboard data
-export const useDashboardData = () => {
-  const statsQuery = useQuery({
-    queryKey: ['dashboard-stats'],
-    queryFn: getStats,
-    staleTime: 1000 * 60 * 5,
-  });
+/**
+ * Hook for fetching dashboard statistics
+ */
+export function useStats() {
+    return useQuery<DashboardStats>({
+        queryKey: ['stats'],
+        queryFn: getStats,
+        staleTime: 30000, // 30 seconds
+        retry: 2,
+    });
+}
 
-  const subscriptionsQuery = useQuery({
-    queryKey: ['dashboard-subscriptions'],
-    queryFn: () => getSubscriptions({ page: 1, per_page: 10, status: 'active' }),
-    staleTime: 1000 * 60 * 5,
-  });
+/**
+ * Hook for fetching subscriptions with optional filters
+ */
+export function useSubscriptions(params?: {
+    page?: number;
+    per_page?: number;
+    status?: string;
+    search?: string;
+}) {
+    return useQuery({
+        queryKey: ['subscriptions', params],
+        queryFn: () => getSubscriptions(params),
+        staleTime: 30000,
+        retry: 2,
+    });
+}
 
-  const ordersQuery = useQuery({
-    queryKey: ['dashboard-orders'],
-    queryFn: () => getOrders({ page: 1, per_page: 5 }),
-    staleTime: 1000 * 60 * 2,
-  });
+/**
+ * Hook for fetching a single subscription by ID
+ */
+export function useSubscription(id: number) {
+    return useQuery<Subscription>({
+        queryKey: ['subscription', id],
+        queryFn: () => getSubscription(id),
+        enabled: !!id,
+        staleTime: 30000,
+    });
+}
 
-  return {
-    stats: statsQuery.data,
-    subscriptions: subscriptionsQuery.data?.data || [],
-    orders: ordersQuery.data?.data || [],
-    isLoading: statsQuery.isLoading || subscriptionsQuery.isLoading || ordersQuery.isLoading,
-    isError: statsQuery.isError || subscriptionsQuery.isError || ordersQuery.isError,
-  };
-};
+/**
+ * Hook for fetching members (subscriptions converted to member format)
+ */
+export function useMembers(params?: {
+    page?: number;
+    per_page?: number;
+    status?: string;
+    search?: string;
+}) {
+    return useQuery<{ data: Member[]; total: number; totalPages: number; page: number }>({
+        queryKey: ['members', params],
+        queryFn: async () => {
+            const result = await getSubscriptions(params);
+            return {
+                ...result,
+                data: result.data.map(subscriptionToMember),
+            };
+        },
+        staleTime: 30000,
+        retry: 2,
+    });
+}
 
-// Hook for subscription statistics
-export const useSubscriptionStats = () => {
-  return useQuery({
-    queryKey: ['subscription-stats'],
-    queryFn: async () => {
-      const [active, pending, onHold] = await Promise.all([
-        getSubscriptions({ status: 'active', per_page: 1 }),
-        getSubscriptions({ status: 'pending', per_page: 1 }),
-        getSubscriptions({ status: 'on-hold', per_page: 1 }),
-      ]);
-
-      return {
-        active: parseInt(active.headers?.['x-wp-total'] || '0'),
-        pending: parseInt(pending.headers?.['x-wp-total'] || '0'),
-        onHold: parseInt(onHold.headers?.['x-wp-total'] || '0'),
-      };
-    },
-    staleTime: 1000 * 60 * 10,
-  });
-};
-
-// Hook for member detail
-export const useMemberDetail = (id: number) => {
-  return useQuery({
-    queryKey: ['member', id],
-    queryFn: () => getSubscriptions({ page: 1, per_page: 1 }).then((res) => {
-      // Find the member by ID from all subscriptions
-      return res.data?.find((s: { id: number }) => s.id === id) || null;
-    }),
-    enabled: !!id,
-  });
-};
+/**
+ * Hook for fetching a single member by subscription ID
+ */
+export function useMember(id: number) {
+    return useQuery<Member>({
+        queryKey: ['member', id],
+        queryFn: async () => {
+            const subscription = await getSubscription(id);
+            return subscriptionToMember(subscription);
+        },
+        enabled: !!id,
+        staleTime: 30000,
+        retry: 2,
+    });
+}
