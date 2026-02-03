@@ -4,6 +4,16 @@ import { useEvents } from '@/hooks/useEvents';
 import { useOrders } from '@/hooks/useOrders';
 import { Search, Bell, Users, Activity, Calendar, ShoppingBag, ChevronRight, Plus, CheckCircle2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import type { Member, Event, Order } from '@/types';
+
+interface ActivityItem {
+    type: string;
+    id: number;
+    date: Date;
+    title: string;
+    user: string;
+    initials: string;
+}
 
 const Dashboard = () => {
     const { data: statsData, isLoading: statsLoading } = useStats();
@@ -13,17 +23,17 @@ const Dashboard = () => {
 
     // Extract arrays from paginated responses
     const stats = statsData;
-    const members = membersData?.data || [];
-    const events = eventsData?.data || [];
-    const orders = ordersData?.data || [];
+    const members: Member[] = membersData?.data || [];
+    const events: Event[] = eventsData?.data || [];
+    const orders: Order[] = ordersData?.data || [];
 
-    const activeMembers = members.filter(m => m.status === 'active');
+    const activeMembers = members.filter((m: Member) => m.status === 'active');
     const recentMembers = activeMembers.slice(0, 3);
     const recentEvents = events.slice(0, 3);
 
     // Combine orders and new members for activity feed
-    const activityFeed = [
-        ...orders.map(o => ({
+    const activityFeed: ActivityItem[] = [
+        ...orders.map((o: Order) => ({
             type: 'order',
             id: o.id,
             date: new Date(o.date_created),
@@ -31,15 +41,15 @@ const Dashboard = () => {
             user: `${o.billing.first_name} ${o.billing.last_name}`,
             initials: (o.billing.first_name?.[0] || '') + (o.billing.last_name?.[0] || '')
         })),
-        ...members.map(s => ({
+        ...members.map((s: Member) => ({
             type: 'subscription',
             id: s.id,
-            date: new Date(s.start_date),
+            date: new Date(s.start_date || Date.now()),
             title: 'New Gold Member Joined',
             user: `${s.first_name} ${s.last_name}`,
             initials: (s.first_name?.[0] || '') + (s.last_name?.[0] || '')
         }))
-    ].sort((a, b) => b.date.getTime() - a.date.getTime()).slice(0, 5);
+    ].sort((a: ActivityItem, b: ActivityItem) => b.date.getTime() - a.date.getTime()).slice(0, 5);
 
 
     if (statsLoading || membersLoading) {
@@ -117,7 +127,7 @@ const Dashboard = () => {
                         </div>
 
                         <div className="events-grid">
-                            {recentEvents.map(event => (
+                            {recentEvents.map((event: Event) => (
                                 <div key={event.id} className="event-card">
                                     <img
                                         src={event.images?.[0]?.src || 'https://streetgasm.com/wp-content/themes/streetgasm/assets/images/placeholder.jpg'}
@@ -149,7 +159,7 @@ const Dashboard = () => {
                             <h2 className="section-title">Recent <span>Updates</span></h2>
                         </div>
                         <div className="activity-feed glass">
-                            {activityFeed.map((item, i) => (
+                            {activityFeed.map((item: ActivityItem, i: number) => (
                                 <div key={`${item.type}-${item.id}`} className="activity-item">
                                     <div className="activity-line">
                                         <div className={`activity-dot ${i === 0 ? '' : i % 2 === 0 ? 'blue' : 'gray'}`}></div>
@@ -186,7 +196,7 @@ const Dashboard = () => {
                     </div>
 
                     <div className="members-grid">
-                        {recentMembers.map(member => (
+                        {recentMembers.map((member: Member) => (
                             <div key={member.id} className="member-card glass">
                                 <div className="member-header">
                                     <div className="member-info">
