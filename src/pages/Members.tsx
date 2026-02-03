@@ -1,92 +1,110 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { getSubscriptions, subscriptionToMember } from '@/lib/api';
-import { Link } from 'react-router-dom';
-import { Search, ChevronRight, ChevronLeft, Users, Car } from 'lucide-react';
+import { useMembers } from '@/hooks/useMembers';
+import { Search, ChevronRight, CheckCircle2, Users } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import type { Member } from '@/types';
 
 const Members = () => {
-    const [page, setPage] = useState(1);
     const [search, setSearch] = useState('');
-    const perPage = 12;
+    const [page, setPage] = useState(1);
+    const { data: membersData, isLoading } = useMembers({ page, per_page: 20, search, status: 'active' });
+    const navigate = useNavigate();
 
-    const { data, isLoading } = useQuery({
-        queryKey: ['members', page, search],
-        queryFn: () => getSubscriptions({ page, per_page: perPage, search, status: 'active' }),
-        select: (data) => ({
-            ...data,
-            data: data.data.map(subscriptionToMember),
-        }),
-    });
+    const members = membersData?.data || [];
+    const totalPages = membersData?.totalPages || 1;
 
-    const members = data?.data || [];
-    const totalPages = data?.totalPages || 1;
+    // Debounced search
+    const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setSearch(e.target.value);
+        setPage(1);
+    };
+
+    if (isLoading && page === 1) {
+        return (
+            <>
+                <header className="header">
+                    <div className="header-left animate-fade">
+                        <p>Overview</p>
+                        <h1>Family <span className="gold-text">Members</span></h1>
+                    </div>
+                </header>
+                <div className="content">
+                    <div className="loader">
+                        <div className="loader-spinner"></div>
+                    </div>
+                </div>
+            </>
+        );
+    }
 
     return (
         <>
             <header className="header">
                 <div className="header-left animate-fade">
-                    <p>Community</p>
-                    <h1>Club <span className="gold-text">Members</span></h1>
+                    <p>Overview</p>
+                    <h1>Family <span className="gold-text">Members</span></h1>
                 </div>
                 <div className="header-right">
                     <div className="search-box glass">
-                        <Search size={16} />
+                        <Search className="w-5 h-5 text-slate-400" />
                         <input
                             type="text"
                             placeholder="Search members..."
                             value={search}
-                            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+                            onChange={handleSearch}
                         />
                     </div>
                 </div>
             </header>
 
             <div className="content">
-                {isLoading ? (
-                    <div className="loader"><div className="loader-spinner"></div></div>
-                ) : members.length === 0 ? (
+                <div className="members-header">
+                    <h2 className="section-title">All <span>Members</span></h2>
+                    <div className="members-actions">
+                        <span className="btn btn-glass" style={{ cursor: 'default' }}>
+                            <Users size={16} style={{ marginRight: 8 }} />
+                            {membersData?.total || 0} Total
+                        </span>
+                        <button className="btn btn-gold">Add New Member</button>
+                    </div>
+                </div>
+
+                {members.length === 0 ? (
                     <div className="glass" style={{ padding: '48px', textAlign: 'center', borderRadius: '24px' }}>
-                        <Users size={48} style={{ color: 'var(--gold-start)', marginBottom: '16px', opacity: 0.5 }} />
                         <p style={{ color: 'rgba(255,255,255,0.5)' }}>No members found</p>
                     </div>
                 ) : (
                     <>
-                        <div style={{
-                            display: 'grid',
-                            gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-                            gap: '24px'
-                        }}>
-                            {members.map((member: Member, i: number) => (
-                                <MemberCard key={member.id} member={member} delay={i} />
+                        <div className="members-grid">
+                            {members.map((member, index) => (
+                                <MemberCard
+                                    key={member.id}
+                                    member={member}
+                                    delay={index}
+                                    onClick={() => navigate(`/members/${member.id}`)}
+                                />
                             ))}
                         </div>
 
                         {/* Pagination */}
                         {totalPages > 1 && (
-                            <div style={{
-                                display: 'flex',
-                                justifyContent: 'center',
-                                alignItems: 'center',
-                                gap: '16px',
-                                marginTop: '32px'
-                            }}>
+                            <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', marginTop: '32px' }}>
                                 <button
                                     className="btn btn-glass"
-                                    onClick={() => setPage(p => Math.max(1, p - 1))}
                                     disabled={page === 1}
+                                    onClick={() => setPage(p => Math.max(1, p - 1))}
                                 >
-                                    <ChevronLeft size={18} />
+                                    Previous
                                 </button>
-                                <span style={{ color: 'var(--text-muted)' }}>
+                                <span style={{ display: 'flex', alignItems: 'center', color: 'var(--text-secondary)' }}>
                                     Page {page} of {totalPages}
                                 </span>
                                 <button
                                     className="btn btn-glass"
-                                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                                    disabled={page === totalPages}
+                                    disabled={page >= totalPages}
+                                    onClick={() => setPage(p => p + 1)}
                                 >
-                                    <ChevronRight size={18} />
+                                    Next
                                 </button>
                             </div>
                         )}
@@ -97,55 +115,48 @@ const Members = () => {
     );
 };
 
-const MemberCard = ({ member, delay }: { member: Member; delay: number }) => (
-    <Link to={`/members/${member.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-        <div className={`glass member-card animate-fade delay-${Math.min(delay, 4)}`} style={{
-            padding: '24px',
-            borderRadius: '20px',
-            cursor: 'pointer',
-            transition: 'all 0.3s'
-        }}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-                <div style={{ display: 'flex', gap: '16px' }}>
-                    <div className="member-avatar" style={{ width: '56px', height: '56px', fontSize: '18px' }}>
-                        {member.name?.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}
+// Member Card Component
+const MemberCard = ({ member, delay, onClick }: { member: Member; delay: number; onClick: () => void }) => {
+    return (
+        <div
+            className={`member-card glass animate-fade delay-${Math.min(delay, 4)}`}
+            onClick={onClick}
+            style={{ cursor: 'pointer' }}
+        >
+            <div className="member-header">
+                <div className="member-info">
+                    <div className="member-avatar">
+                        {(member.first_name?.[0] || '') + (member.last_name?.[0] || '')}
                     </div>
                     <div>
-                        <h3 style={{ fontSize: '16px', marginBottom: '4px' }}>{member.name}</h3>
-                        <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{member.email}</p>
-                        <div style={{
-                            display: 'inline-block',
-                            marginTop: '8px',
-                            padding: '4px 12px',
-                            borderRadius: '100px',
-                            background: 'rgba(251, 191, 36, 0.1)',
-                            color: 'var(--gold-start)',
-                            fontSize: '11px',
-                            fontWeight: 700
-                        }}>
-                            {member.membershipType}
-                        </div>
+                        <div className="member-name">{member.first_name} {member.last_name}</div>
+                        <div className="member-role">{member.status === 'active' ? 'Gold Member' : 'Member'}</div>
                     </div>
                 </div>
-                <ChevronRight size={20} style={{ color: 'var(--text-muted)' }} />
-            </div>
-            {member.vehicle && (
-                <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    marginTop: '16px',
-                    paddingTop: '16px',
-                    borderTop: '1px solid rgba(255,255,255,0.05)',
-                    fontSize: '13px',
-                    color: 'var(--text-muted)'
-                }}>
-                    <Car size={14} />
-                    {member.vehicle}
+                <div className="member-more">
+                    <ChevronRight size={16} />
                 </div>
-            )}
+            </div>
+
+            <div className="member-car">
+                <img
+                    src={member.auto?.foto || 'https://images.unsplash.com/photo-1503376763036-066120622c74?q=80&w=2670&auto=format&fit=crop'}
+                    className="member-car-img"
+                    alt={`${member.auto?.merk} ${member.auto?.model}`}
+                />
+                <div className="member-car-name">
+                    {member.auto?.merk || 'Unknown'} {member.auto?.model || ''}
+                </div>
+            </div>
+
+            <div className="member-footer">
+                <div className="member-footer-item">
+                    <CheckCircle2 size={12} /> Verified
+                </div>
+                <div className="status-dot"></div>
+            </div>
         </div>
-    </Link>
-);
+    );
+};
 
 export default Members;

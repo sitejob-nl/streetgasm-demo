@@ -1,60 +1,53 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getSubscriptions } from '@/lib/api';
+import { ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { Search, ChevronRight, ChevronLeft, CreditCard } from 'lucide-react';
 import { format } from 'date-fns';
-import type { Subscription } from '@/types';
-
-type StatusFilter = 'all' | 'active' | 'on-hold' | 'cancelled' | 'pending';
 
 const Subscriptions = () => {
     const [page, setPage] = useState(1);
-    const [search, setSearch] = useState('');
-    const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
-    const perPage = 15;
+    const [statusFilter, setStatusFilter] = useState<string>('');
 
     const { data, isLoading } = useQuery({
-        queryKey: ['subscriptions', page, search, statusFilter],
-        queryFn: () => getSubscriptions({
-            page,
-            per_page: perPage,
-            search,
-            status: statusFilter === 'all' ? undefined : statusFilter
-        }),
+        queryKey: ['subscriptions', page, statusFilter],
+        queryFn: () => getSubscriptions({ page, per_page: 20, status: statusFilter || undefined }),
     });
 
     const subscriptions = data?.data || [];
     const totalPages = data?.totalPages || 1;
 
-    const statusColors: Record<string, { bg: string; color: string }> = {
-        active: { bg: 'rgba(34, 197, 94, 0.1)', color: 'var(--green)' },
-        'on-hold': { bg: 'rgba(251, 191, 36, 0.1)', color: 'var(--gold-start)' },
-        cancelled: { bg: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' },
-        pending: { bg: 'rgba(59, 130, 246, 0.1)', color: 'var(--blue)' },
+    const formatDate = (date: string | undefined) => {
+        if (!date) return '-';
+        try {
+            return format(new Date(date), 'MMM d, yyyy');
+        } catch {
+            return date;
+        }
+    };
+
+    const getStatusColor = (status: string) => {
+        switch (status) {
+            case 'active': return 'var(--green)';
+            case 'on-hold': return 'var(--gold-start)';
+            case 'cancelled': return '#ef4444';
+            case 'pending': return 'var(--blue)';
+            default: return 'var(--text-muted)';
+        }
     };
 
     return (
         <>
             <header className="header">
                 <div className="header-left animate-fade">
-                    <p>Management</p>
-                    <h1>Member <span className="gold-text">Subscriptions</span></h1>
+                    <p>Overview</p>
+                    <h1>Gold <span className="gold-text">Subscriptions</span></h1>
                 </div>
-                <div className="header-right" style={{ display: 'flex', gap: '12px' }}>
-                    <div className="search-box glass">
-                        <Search size={16} />
-                        <input
-                            type="text"
-                            placeholder="Search..."
-                            value={search}
-                            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-                        />
-                    </div>
+                <div className="header-right">
                     <select
                         className="glass"
                         value={statusFilter}
-                        onChange={(e) => { setStatusFilter(e.target.value as StatusFilter); setPage(1); }}
+                        onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
                         style={{
                             padding: '10px 16px',
                             borderRadius: '100px',
@@ -64,11 +57,11 @@ const Subscriptions = () => {
                             cursor: 'pointer'
                         }}
                     >
-                        <option value="all">All Status</option>
+                        <option value="">All Statuses</option>
                         <option value="active">Active</option>
                         <option value="on-hold">On Hold</option>
-                        <option value="cancelled">Cancelled</option>
                         <option value="pending">Pending</option>
+                        <option value="cancelled">Cancelled</option>
                     </select>
                 </div>
             </header>
@@ -78,69 +71,62 @@ const Subscriptions = () => {
                     <div className="loader"><div className="loader-spinner"></div></div>
                 ) : subscriptions.length === 0 ? (
                     <div className="glass" style={{ padding: '48px', textAlign: 'center', borderRadius: '24px' }}>
-                        <CreditCard size={48} style={{ color: 'var(--gold-start)', marginBottom: '16px', opacity: 0.5 }} />
                         <p style={{ color: 'rgba(255,255,255,0.5)' }}>No subscriptions found</p>
                     </div>
                 ) : (
                     <>
-                        <div className="glass animate-fade" style={{ borderRadius: '24px', overflow: 'hidden' }}>
+                        <div className="glass" style={{ borderRadius: '24px', overflow: 'hidden' }}>
                             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                                 <thead>
                                     <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                                         <th style={thStyle}>Member</th>
-                                        <th style={thStyle}>Product</th>
                                         <th style={thStyle}>Status</th>
-                                        <th style={thStyle}>Amount</th>
                                         <th style={thStyle}>Start Date</th>
                                         <th style={thStyle}>Next Payment</th>
+                                        <th style={thStyle}>Amount</th>
                                         <th style={thStyle}></th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {subscriptions.map((sub: Subscription) => (
-                                        <tr key={sub.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                                    {subscriptions.map((sub, i) => (
+                                        <tr
+                                            key={sub.id}
+                                            className={`animate-fade delay-${Math.min(i, 4)}`}
+                                            style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}
+                                        >
                                             <td style={tdStyle}>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                                     <div className="member-avatar" style={{ width: '36px', height: '36px', fontSize: '12px' }}>
                                                         {(sub.billing?.first_name?.[0] || '') + (sub.billing?.last_name?.[0] || '')}
                                                     </div>
                                                     <div>
-                                                        <div style={{ fontWeight: 600 }}>
-                                                            {sub.billing?.first_name} {sub.billing?.last_name}
-                                                        </div>
-                                                        <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                                                            {sub.billing?.email}
-                                                        </div>
+                                                        <div style={{ fontWeight: 600 }}>{sub.billing?.first_name} {sub.billing?.last_name}</div>
+                                                        <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{sub.billing?.email}</div>
                                                     </div>
                                                 </div>
-                                            </td>
-                                            <td style={tdStyle}>
-                                                {sub.line_items?.[0]?.name || '-'}
                                             </td>
                                             <td style={tdStyle}>
                                                 <span style={{
                                                     padding: '4px 12px',
                                                     borderRadius: '100px',
+                                                    background: `${getStatusColor(sub.status)}20`,
+                                                    color: getStatusColor(sub.status),
                                                     fontSize: '11px',
                                                     fontWeight: 700,
-                                                    textTransform: 'capitalize',
-                                                    ...statusColors[sub.status] || statusColors.pending
+                                                    textTransform: 'uppercase'
                                                 }}>
                                                     {sub.status}
                                                 </span>
                                             </td>
-                                            <td style={tdStyle}>€{sub.total || '0'}</td>
+                                            <td style={tdStyle}>{formatDate(sub.start_date)}</td>
+                                            <td style={tdStyle}>{formatDate(sub.next_payment_date)}</td>
+                                            <td style={tdStyle}>€{sub.total}</td>
                                             <td style={tdStyle}>
-                                                {sub.start_date ? format(new Date(sub.start_date), 'MMM d, yyyy') : '-'}
-                                            </td>
-                                            <td style={tdStyle}>
-                                                {sub.next_payment_date ? format(new Date(sub.next_payment_date), 'MMM d, yyyy') : '-'}
-                                            </td>
-                                            <td style={tdStyle}>
-                                                <Link to={`/members/${sub.id}`}>
-                                                    <button className="btn btn-glass" style={{ padding: '6px 12px' }}>
-                                                        <ChevronRight size={14} />
-                                                    </button>
+                                                <Link
+                                                    to={`/members/${sub.id}`}
+                                                    style={{ color: 'var(--gold-start)', display: 'flex', alignItems: 'center', gap: '4px' }}
+                                                >
+                                                    View <ChevronRight size={14} />
                                                 </Link>
                                             </td>
                                         </tr>
@@ -151,29 +137,23 @@ const Subscriptions = () => {
 
                         {/* Pagination */}
                         {totalPages > 1 && (
-                            <div style={{
-                                display: 'flex',
-                                justifyContent: 'center',
-                                alignItems: 'center',
-                                gap: '16px',
-                                marginTop: '32px'
-                            }}>
+                            <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', marginTop: '32px' }}>
                                 <button
                                     className="btn btn-glass"
-                                    onClick={() => setPage(p => Math.max(1, p - 1))}
                                     disabled={page === 1}
+                                    onClick={() => setPage(p => Math.max(1, p - 1))}
                                 >
-                                    <ChevronLeft size={18} />
+                                    Previous
                                 </button>
-                                <span style={{ color: 'var(--text-muted)' }}>
+                                <span style={{ display: 'flex', alignItems: 'center', color: 'var(--text-secondary)' }}>
                                     Page {page} of {totalPages}
                                 </span>
                                 <button
                                     className="btn btn-glass"
-                                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                                    disabled={page === totalPages}
+                                    disabled={page >= totalPages}
+                                    onClick={() => setPage(p => p + 1)}
                                 >
-                                    <ChevronRight size={18} />
+                                    Next
                                 </button>
                             </div>
                         )}

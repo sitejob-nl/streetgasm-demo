@@ -1,19 +1,10 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { getProducts } from '@/lib/api';
-import { Search, ChevronRight, ChevronLeft, Calendar, MapPin } from 'lucide-react';
-import { format } from 'date-fns';
-import type { Product } from '@/types';
+import { useEvents } from '@/hooks/useEvents';
+import { Calendar, Plus } from 'lucide-react';
 
 const Events = () => {
     const [page, setPage] = useState(1);
-    const [search, setSearch] = useState('');
-    const perPage = 12;
-
-    const { data, isLoading } = useQuery({
-        queryKey: ['events', page, search],
-        queryFn: () => getProducts({ page, per_page: perPage, search }),
-    });
+    const { data, isLoading } = useEvents({ page, per_page: 12 });
 
     const events = data?.data || [];
     const totalPages = data?.totalPages || 1;
@@ -22,19 +13,13 @@ const Events = () => {
         <>
             <header className="header">
                 <div className="header-left animate-fade">
-                    <p>Schedule</p>
-                    <h1>Club <span className="gold-text">Events</span></h1>
+                    <p>Overview</p>
+                    <h1>Upcoming <span className="gold-text">Experiences</span></h1>
                 </div>
                 <div className="header-right">
-                    <div className="search-box glass">
-                        <Search size={16} />
-                        <input
-                            type="text"
-                            placeholder="Search events..."
-                            value={search}
-                            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-                        />
-                    </div>
+                    <button className="btn btn-gold">
+                        <Plus size={16} style={{ marginRight: 8 }} /> Add Event
+                    </button>
                 </div>
             </header>
 
@@ -43,46 +28,58 @@ const Events = () => {
                     <div className="loader"><div className="loader-spinner"></div></div>
                 ) : events.length === 0 ? (
                     <div className="glass" style={{ padding: '48px', textAlign: 'center', borderRadius: '24px' }}>
-                        <Calendar size={48} style={{ color: 'var(--gold-start)', marginBottom: '16px', opacity: 0.5 }} />
                         <p style={{ color: 'rgba(255,255,255,0.5)' }}>No events found</p>
                     </div>
                 ) : (
                     <>
-                        <div style={{
-                            display: 'grid',
-                            gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-                            gap: '24px'
-                        }}>
-                            {events.map((event: Product, i: number) => (
-                                <EventCard key={event.id} event={event} delay={i} />
+                        <div className="events-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+                            {events.map((event, i) => (
+                                <div
+                                    key={event.id}
+                                    className={`event-card animate-fade delay-${Math.min(i, 4)}`}
+                                >
+                                    <img
+                                        src={event.images?.[0]?.src || 'https://streetgasm.com/wp-content/themes/streetgasm/assets/images/placeholder.jpg'}
+                                        alt={event.name}
+                                    />
+                                    <div className="event-status glass">
+                                        {event.stock_status === 'instock' ? 'Available' : 'Sold Out'}
+                                    </div>
+                                    <div className="event-content">
+                                        <div className="event-date">
+                                            <Calendar size={14} />
+                                            {event.categories?.[0]?.name || 'Event'}
+                                        </div>
+                                        <h3 className="event-title">{event.name}</h3>
+                                        <div className="event-loc">
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                {event.price ? `€${event.price}` : 'Price TBA'}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             ))}
                         </div>
 
                         {/* Pagination */}
                         {totalPages > 1 && (
-                            <div style={{
-                                display: 'flex',
-                                justifyContent: 'center',
-                                alignItems: 'center',
-                                gap: '16px',
-                                marginTop: '32px'
-                            }}>
+                            <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', marginTop: '32px' }}>
                                 <button
                                     className="btn btn-glass"
-                                    onClick={() => setPage(p => Math.max(1, p - 1))}
                                     disabled={page === 1}
+                                    onClick={() => setPage(p => Math.max(1, p - 1))}
                                 >
-                                    <ChevronLeft size={18} />
+                                    Previous
                                 </button>
-                                <span style={{ color: 'var(--text-muted)' }}>
+                                <span style={{ display: 'flex', alignItems: 'center', color: 'var(--text-secondary)' }}>
                                     Page {page} of {totalPages}
                                 </span>
                                 <button
                                     className="btn btn-glass"
-                                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                                    disabled={page === totalPages}
+                                    disabled={page >= totalPages}
+                                    onClick={() => setPage(p => p + 1)}
                                 >
-                                    <ChevronRight size={18} />
+                                    Next
                                 </button>
                             </div>
                         )}
@@ -92,60 +89,5 @@ const Events = () => {
         </>
     );
 };
-
-const EventCard = ({ event, delay }: { event: Product; delay: number }) => (
-    <div className={`glass animate-fade delay-${Math.min(delay, 4)}`} style={{
-        borderRadius: '20px',
-        overflow: 'hidden',
-        cursor: 'pointer',
-        transition: 'all 0.3s'
-    }}>
-        {/* Event Image */}
-        <div style={{
-            height: '180px',
-            background: event.images?.[0]?.src
-                ? `url(${event.images[0].src}) center/cover`
-                : 'linear-gradient(135deg, rgba(251,191,36,0.2), rgba(0,0,0,0.3))',
-            display: 'flex',
-            alignItems: 'flex-end',
-            padding: '16px'
-        }}>
-            <div style={{
-                padding: '6px 12px',
-                borderRadius: '100px',
-                background: event.stock_status === 'instock' ? 'rgba(34, 197, 94, 0.9)' : 'rgba(239, 68, 68, 0.9)',
-                color: '#fff',
-                fontSize: '11px',
-                fontWeight: 700
-            }}>
-                {event.stock_status === 'instock' ? 'Open' : 'Sold Out'}
-            </div>
-        </div>
-
-        {/* Event Info */}
-        <div style={{ padding: '20px' }}>
-            <h3 style={{ fontSize: '16px', marginBottom: '8px' }}>{event.name}</h3>
-            <div style={{ display: 'flex', gap: '16px', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '16px' }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <Calendar size={12} />
-                    {event.date_created ? format(new Date(event.date_created), 'MMM d, yyyy') : '-'}
-                </span>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <MapPin size={12} />
-                    {event.attributes?.find((a: { name: string }) => a.name === 'Locatie')?.options?.[0] || 'TBD'}
-                </span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                    <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Price</div>
-                    <div style={{ fontSize: '18px', fontWeight: 700 }} className="gold-text">€{event.price || 0}</div>
-                </div>
-                <button className="btn btn-gold" style={{ padding: '10px 20px', fontSize: '12px' }}>
-                    View <ChevronRight size={14} />
-                </button>
-            </div>
-        </div>
-    </div>
-);
 
 export default Events;
