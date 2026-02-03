@@ -51,7 +51,7 @@ const Approvals = () => {
                         <div className="glass animate-fade" style={{ padding: '24px', borderRadius: '24px' }}>
                             <h3 style={{ marginBottom: '24px' }}>Pending Queue</h3>
                             <div style={{ display: 'grid', gap: '12px' }}>
-                                {pendingApprovals.map((approval) => (
+                                {pendingApprovals.map((approval: MemberApproval) => (
                                     <div
                                         key={approval.id}
                                         onClick={() => setSelectedMember(approval)}
