@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { Subscription, Order, Product } from '@/types';
+import type { DashboardStats, Subscription, Order, Event, Member } from '@/types';
 
 // Supabase Edge Functions URL
 const SUPABASE_URL = 'https://gzoprwdqrmrzlqentuxq.supabase.co';
@@ -14,114 +14,108 @@ const api = axios.create({
     },
 });
 
-// Dashboard stats
-export interface DashboardStats {
-    activeMembers: number;
-    totalOrders: number;
-    upcomingEvents: number;
-    pendingApprovals: number;
-    totalRevenue: number;
-    memberGrowth: number;
+// API Response types
+interface PaginatedResponse<T> {
+    data: T[];
+    total: number;
+    totalPages: number;
+    page: number;
 }
 
+// Dashboard Stats
 export async function getStats(): Promise<DashboardStats> {
     const { data } = await api.get('/stats');
     return data;
 }
 
-// Subscriptions (Members)
-export interface SubscriptionFilters {
+// Subscriptions / Members
+export async function getSubscriptions(params?: {
     page?: number;
     per_page?: number;
     status?: string;
-}
-
-export async function getSubscriptions(filters: SubscriptionFilters = {}) {
-    const params = new URLSearchParams();
-    if (filters.page) params.append('page', filters.page.toString());
-    if (filters.per_page) params.append('per_page', filters.per_page.toString());
-    if (filters.status) params.append('status', filters.status);
-
-    const { data } = await api.get(`/subscriptions${params.toString() ? '?' + params.toString() : ''}`);
-    return data as { data: Subscription[]; total: number; totalPages: number };
-}
-
-export async function getSubscription(id: number): Promise<Subscription> {
-    const { data } = await api.get(`/subscriptions/${id}`);
+    search?: string;
+}): Promise<PaginatedResponse<Subscription>> {
+    const { data } = await api.get('/subscriptions', { params });
     return data;
 }
 
-// Orders
-export interface OrderFilters {
-    page?: number;
-    per_page?: number;
-    status?: string;
+export async function getSubscription(id: number): Promise<Subscription> {
+    const { data } = await api.get(`/subscriptions?id=${id}`);
+    // Since we're querying from database, filter locally
+    return data.data?.[0] || data;
 }
 
-export async function getOrders(filters: OrderFilters = {}) {
-    const params = new URLSearchParams();
-    if (filters.page) params.append('page', filters.page.toString());
-    if (filters.per_page) params.append('per_page', filters.per_page.toString());
-    if (filters.status) params.append('status', filters.status);
-
-    const { data } = await api.get(`/orders${params.toString() ? '?' + params.toString() : ''}`);
-    return data as { data: Order[]; total: number; totalPages: number };
-}
-
-// Products (Events)
-export interface ProductFilters {
-    page?: number;
-    per_page?: number;
-}
-
-export async function getProducts(filters: ProductFilters = {}) {
-    const params = new URLSearchParams();
-    if (filters.page) params.append('page', filters.page.toString());
-    if (filters.per_page) params.append('per_page', filters.per_page.toString());
-
-    const { data } = await api.get(`/products${params.toString() ? '?' + params.toString() : ''}`);
-    return data as { data: Product[]; total: number; totalPages: number };
-}
-
-// Convert subscription to member format for compatibility
-export function subscriptionToMember(sub: Subscription) {
+// Convert subscription to member format
+export function subscriptionToMember(sub: Subscription): Member {
     return {
         id: sub.id,
-        name: `${sub.billing?.first_name || ''} ${sub.billing?.last_name || ''}`.trim() || 'Unknown',
+        customer_id: sub.customer_id,
+        first_name: sub.billing?.first_name || '',
+        last_name: sub.billing?.last_name || '',
         email: sub.billing?.email || '',
-        phone: sub.billing?.phone || '',
-        status: sub.status === 'active' ? 'active' : 'inactive',
-        memberType: 'Gold Member',
-        joinDate: sub.start_date || sub.date_created,
-        lastActive: sub.date_modified,
-        avatar: null,
-        car: sub.auto ? {
-            brand: sub.auto.merk || 'Unknown',
-            model: sub.auto.model || '',
-            year: sub.auto.bouwjaar || '',
-            image: sub.auto.foto || null,
-            power: sub.auto.vermogen || '',
-        } : null,
-        location: {
-            city: sub.billing?.city || '',
-            country: sub.billing?.country || '',
-        },
-        subscription: {
-            id: sub.id,
-            status: sub.status,
-            nextPayment: sub.next_payment_date,
-            total: sub.total || '0',
-        },
+        status: sub.status as Member['status'],
+        start_date: sub.start_date,
+        next_payment_date: sub.next_payment_date,
+        billing: sub.billing,
+        auto: sub.auto,
+        goedkeuring: sub.goedkeuring,
     };
 }
 
-// Get members (wrapper around subscriptions)
-export async function getMembers(filters: SubscriptionFilters = {}) {
-    const result = await getSubscriptions(filters);
+// Customers
+export async function getCustomers(params?: {
+    page?: number;
+    per_page?: number;
+    search?: string;
+}): Promise<PaginatedResponse<Member>> {
+    const { data } = await api.get('/customers', { params });
+    return data;
+}
+
+export async function getCustomer(id: number): Promise<Member> {
+    const { data } = await api.get(`/customers?id=${id}`);
+    return data.data?.[0] || data;
+}
+
+// Orders
+export async function getOrders(params?: {
+    page?: number;
+    per_page?: number;
+    status?: string;
+}): Promise<PaginatedResponse<Order>> {
+    const { data } = await api.get('/orders', { params });
+    return data;
+}
+
+export async function getOrder(id: number): Promise<Order> {
+    const { data } = await api.get(`/orders?id=${id}`);
+    return data.data?.[0] || data;
+}
+
+// Products / Events
+export async function getProducts(params?: {
+    page?: number;
+    per_page?: number;
+    search?: string;
+}): Promise<PaginatedResponse<Event>> {
+    const { data } = await api.get('/products', { params });
+    return data;
+}
+
+export async function getProduct(id: number): Promise<Event> {
+    const { data } = await api.get(`/products?id=${id}`);
+    return data.data?.[0] || data;
+}
+
+// Config (for Supabase credentials) - now hardcoded since we use Edge Functions
+export async function getConfig(): Promise<{
+    supabase: { url: string; anonKey: string };
+}> {
     return {
-        data: result.data.map(subscriptionToMember),
-        total: result.total,
-        totalPages: result.totalPages,
+        supabase: {
+            url: SUPABASE_URL,
+            anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd6b3Byd2Rxcm1yemxxZW50dXhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAxMzQ2MjUsImV4cCI6MjA4NTcxMDYyNX0.J9awhBKyMUOqgmkZAb1ir0XZKBwmVaky899RBaNLFPE',
+        },
     };
 }
 
@@ -132,7 +126,9 @@ export async function triggerSync(entity: 'all' | 'subscriptions' | 'customers' 
 }
 
 // Get sync status
-export async function getSyncStatus(): Promise<{ lastSync: string; status: string }> {
+export async function getSyncStatus(): Promise<{ logs: Array<{ entity_type: string; records_synced: number; status: string; started_at: string }> }> {
     const { data } = await api.get('/sync-status');
     return data;
 }
+
+export default api;
