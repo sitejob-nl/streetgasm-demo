@@ -1,8 +1,23 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getSubscriptions } from '@/lib/api';
-import { Car, Search, Filter, ChevronRight, Gauge, CheckCircle2 } from 'lucide-react';
+import { Car, Search, ChevronRight, Gauge, CheckCircle2, Filter } from 'lucide-react';
 import { Link } from 'react-router-dom';
+
+interface Member {
+    id: number;
+    billing?: {
+        first_name?: string;
+        last_name?: string;
+    };
+    auto?: {
+        merk?: string;
+        model?: string;
+        bouwjaar?: string;
+        vermogen?: string;
+        foto?: string;
+    };
+}
 
 const Garage = () => {
     const [search, setSearch] = useState('');
@@ -13,15 +28,15 @@ const Garage = () => {
         queryFn: () => getSubscriptions({ page: 1, per_page: 100, status: 'active' }),
     });
 
-    const members = data?.data || [];
+    const members: Member[] = data?.data || [];
 
     // Get unique brands
-    const brands = [...new Set(members.map(m => m.auto?.merk).filter(Boolean))].sort();
+    const brands = [...new Set(members.map((m: Member) => m.auto?.merk).filter(Boolean))].sort() as string[];
 
     // Filter members with vehicles
-    const vehicleMembers = members.filter(m => m.auto?.merk);
+    const vehicleMembers = members.filter((m: Member) => m.auto?.merk);
 
-    const filteredVehicles = vehicleMembers.filter(member => {
+    const filteredVehicles = vehicleMembers.filter((member: Member) => {
         const matchesSearch = search === '' ||
             `${member.auto?.merk} ${member.auto?.model}`.toLowerCase().includes(search.toLowerCase()) ||
             `${member.billing?.first_name} ${member.billing?.last_name}`.toLowerCase().includes(search.toLowerCase());
@@ -31,7 +46,7 @@ const Garage = () => {
 
     // Stats
     const totalVehicles = vehicleMembers.length;
-    const totalPower = vehicleMembers.reduce((sum, m) => sum + (Number(m.auto?.vermogen) || 0), 0);
+    const totalPower = vehicleMembers.reduce((sum: number, m: Member) => sum + (Number(m.auto?.vermogen) || 0), 0);
     const avgPower = totalVehicles > 0 ? Math.round(totalPower / totalVehicles) : 0;
 
     return (
@@ -48,13 +63,13 @@ const Garage = () => {
                             type="text"
                             placeholder="Search vehicles..."
                             value={search}
-                            onChange={(e) => setSearch(e.target.value)}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)}
                         />
                     </div>
                     <select
                         className="glass"
                         value={brandFilter}
-                        onChange={(e) => setBrandFilter(e.target.value)}
+                        onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setBrandFilter(e.target.value)}
                         style={{
                             padding: '10px 16px',
                             borderRadius: '100px',
@@ -65,7 +80,7 @@ const Garage = () => {
                         }}
                     >
                         <option value="">All Brands</option>
-                        {brands.map(brand => (
+                        {brands.map((brand: string) => (
                             <option key={brand} value={brand}>{brand}</option>
                         ))}
                     </select>
@@ -92,7 +107,7 @@ const Garage = () => {
                     </div>
                     <div className="stat-card glass">
                         <div className="stat-icon"><CheckCircle2 size={20} /></div>
-                        <div className="stat-value">{vehicleMembers.filter(m => m.auto?.foto).length}</div>
+                        <div className="stat-value">{vehicleMembers.filter((m: Member) => m.auto?.foto).length}</div>
                         <div className="stat-label">With Photos</div>
                     </div>
                 </div>
@@ -110,7 +125,7 @@ const Garage = () => {
                         gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))',
                         gap: '24px'
                     }}>
-                        {filteredVehicles.map((member, i) => (
+                        {filteredVehicles.map((member: Member, i: number) => (
                             <Link
                                 key={member.id}
                                 to={`/members/${member.id}`}
