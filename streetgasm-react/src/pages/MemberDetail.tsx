@@ -3,10 +3,11 @@ import { useQuery } from '@tanstack/react-query';
 import { getSubscription } from '@/lib/api';
 import { ArrowLeft, Calendar, CreditCard, Car, CheckCircle2, MapPin, Mail, Phone } from 'lucide-react';
 import { format } from 'date-fns';
+import type { Subscription } from '@/types';
 
 const MemberDetail = () => {
     const { id } = useParams<{ id: string }>();
-    const { data: member, isLoading, error } = useQuery({
+    const { data: member, isLoading, error } = useQuery<Subscription>({
         queryKey: ['subscription', id],
         queryFn: () => getSubscription(Number(id)),
         enabled: !!id,
@@ -51,7 +52,7 @@ const MemberDetail = () => {
         );
     }
 
-    const formatDate = (date: string | undefined) => {
+    const formatDate = (date: string | undefined): string => {
         if (!date) return '-';
         try {
             return format(new Date(date), 'MMM d, yyyy');
