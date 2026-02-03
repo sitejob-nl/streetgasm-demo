@@ -1,19 +1,35 @@
 import { useState } from 'react';
 import { Mail, Send, Users, MessageSquare, Bell, Megaphone, Calendar, CheckCircle2 } from 'lucide-react';
+import React from 'react';
+
+interface Template {
+    id: string;
+    name: string;
+    icon: React.ReactNode;
+    description: string;
+}
+
+interface Campaign {
+    name: string;
+    sent: string;
+    opened: string;
+    clicked: string;
+    date: string;
+}
 
 const Marketing = () => {
     const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
     const [emailSubject, setEmailSubject] = useState('');
     const [emailBody, setEmailBody] = useState('');
 
-    const templates = [
+    const templates: Template[] = [
         { id: 'welcome', name: 'Welcome Email', icon: <Users size={20} />, description: 'New member onboarding' },
         { id: 'event', name: 'Event Announcement', icon: <Calendar size={20} />, description: 'Upcoming events' },
         { id: 'newsletter', name: 'Newsletter', icon: <Mail size={20} />, description: 'Monthly updates' },
         { id: 'promo', name: 'Promotion', icon: <Megaphone size={20} />, description: 'Special offers' },
     ];
 
-    const recentCampaigns = [
+    const recentCampaigns: Campaign[] = [
         { name: 'Winter Meet 2024 Invite', sent: '1,234', opened: '67%', clicked: '23%', date: 'Dec 15, 2024' },
         { name: 'Black Friday Merch Sale', sent: '1,189', opened: '72%', clicked: '31%', date: 'Nov 24, 2024' },
         { name: 'November Newsletter', sent: '1,156', opened: '58%', clicked: '12%', date: 'Nov 1, 2024' },
@@ -58,7 +74,7 @@ const Marketing = () => {
                     <div className="glass animate-fade delay-1" style={{ padding: '24px', borderRadius: '24px' }}>
                         <h3 style={{ marginBottom: '24px' }}>Email Templates</h3>
                         <div style={{ display: 'grid', gap: '12px' }}>
-                            {templates.map(template => (
+                            {templates.map((template: Template) => (
                                 <div
                                     key={template.id}
                                     onClick={() => setSelectedTemplate(template.id)}
@@ -99,7 +115,7 @@ const Marketing = () => {
                             <input
                                 type="text"
                                 value={emailSubject}
-                                onChange={(e) => setEmailSubject(e.target.value)}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmailSubject(e.target.value)}
                                 placeholder="Enter email subject..."
                                 style={{
                                     width: '100%',
@@ -119,7 +135,7 @@ const Marketing = () => {
                             </label>
                             <textarea
                                 value={emailBody}
-                                onChange={(e) => setEmailBody(e.target.value)}
+                                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setEmailBody(e.target.value)}
                                 placeholder="Write your message..."
                                 rows={8}
                                 style={{
@@ -161,7 +177,7 @@ const Marketing = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {recentCampaigns.map((campaign, i) => (
+                            {recentCampaigns.map((campaign: Campaign, i: number) => (
                                 <tr key={i} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                                     <td style={tdStyle}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
