@@ -4,6 +4,22 @@ import { getProducts } from '@/lib/api';
 import { Calendar, Users, MapPin, Search } from 'lucide-react';
 import { format } from 'date-fns';
 
+interface ProductAttribute {
+    name: string;
+    options?: string[];
+}
+
+interface Product {
+    id: number;
+    name: string;
+    date_created: string;
+    total_sales: number;
+    stock_status: string;
+    stock_quantity: number | null;
+    price: string;
+    attributes?: ProductAttribute[];
+}
+
 const Registrations = () => {
     const [search, setSearch] = useState('');
     const { data, isLoading } = useQuery({
@@ -11,8 +27,8 @@ const Registrations = () => {
         queryFn: () => getProducts({ page: 1, per_page: 50 }),
     });
 
-    const events = data?.data || [];
-    const filteredEvents = events.filter(e =>
+    const events: Product[] = data?.data || [];
+    const filteredEvents = events.filter((e: Product) =>
         e.name.toLowerCase().includes(search.toLowerCase())
     );
 
@@ -30,7 +46,7 @@ const Registrations = () => {
                             type="text"
                             placeholder="Search events..."
                             value={search}
-                            onChange={(e) => setSearch(e.target.value)}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)}
                         />
                     </div>
                 </div>
@@ -46,7 +62,7 @@ const Registrations = () => {
                     </div>
                 ) : (
                     <div style={{ display: 'grid', gap: '24px' }}>
-                        {filteredEvents.map((event, i) => (
+                        {filteredEvents.map((event: Product, i: number) => (
                             <div
                                 key={event.id}
                                 className={`glass animate-fade delay-${Math.min(i, 4)}`}
@@ -62,7 +78,7 @@ const Registrations = () => {
                                             </span>
                                             <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                                 <MapPin size={14} />
-                                                {event.attributes?.find((a: { name: string }) => a.name === 'Locatie')?.options?.[0] || 'TBD'}
+                                                {event.attributes?.find((a: ProductAttribute) => a.name === 'Locatie')?.options?.[0] || 'TBD'}
                                             </span>
                                             <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                                 <Users size={14} />
