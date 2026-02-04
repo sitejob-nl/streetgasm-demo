@@ -95,6 +95,13 @@ export interface DashboardStats {
     products?: number;
 }
 
+export interface PaginatedResponse<T> {
+    data: T[];
+    total: number;
+    totalPages: number;
+    page: number;
+}
+
 export interface UserPreferences {
     user_id: string;
     theme: 'dark' | 'light';
